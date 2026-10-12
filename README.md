@@ -67,8 +67,12 @@ Con cualquiera de ellas: abre instagram.com → tu perfil → **Seguidos**.
 3. Abre instagram.com → tu perfil → **Seguidos**.
 
 ## Notas
-- Si tienes miles de seguidores, el primer análisis tarda un poco (≈1 s por cada 100 cuentas).
-- Si Instagram responde con error 429/401, espera un rato y vuelve a intentarlo.
+- **Cuentas grandes (miles de seguidores):** el panel muestra una barra de progreso y
+  el tiempo estimado (≈1 min por cada 3.000 cuentas, más pausas). El progreso se guarda
+  tras cada página: si cierras Safari, bloqueas el iPhone o Instagram te limita, vuelve
+  a abrir **Seguidos** y continuará donde lo dejó (durante 24 h).
+- Si Instagram pide ir más despacio (error 429), el script espera y reintenta solo;
+  si sigue limitando, se detiene sin perder nada: espera 15–30 min y vuelve a Seguidos.
 - Uso personal sobre tu propia cuenta; no lo uses de forma masiva ni automatizada.
 
 ## Desarrollo
