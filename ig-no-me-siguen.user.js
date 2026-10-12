@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         IG – ¿Quién no me sigue de vuelta?
 // @namespace    https://github.com/h4nkp/dise-os
-// @version      1.0.0
+// @version      1.1.0
 // @description  Al abrir tu lista de "Seguidos" en instagram.com muestra una alerta con las cuentas que no te siguen de vuelta.
 // @match        https://www.instagram.com/*
 // @run-at       document-idle
@@ -11,7 +11,9 @@
 (function () {
   'use strict';
 
-  const APP_ID = '936619743392459';           // App ID público de la web de Instagram
+  const APP_ID_DESKTOP = '936619743392459';   // App ID de instagram.com en ordenador
+  const APP_ID_MOBILE = '1217981644879628';   // App ID de instagram.com en móvil (iPhone/Android)
+  const BUTTON_ID = 'ig-no-me-siguen-btn';
   const PAGE_SIZE = 100;
   const DELAY_MS = 1500;                      // pausa entre páginas para no saturar
   const LONG_PAUSE_EVERY = 10;                // cada 10 páginas…
@@ -36,21 +38,58 @@
 
   class RateLimited extends Error {}
 
+  // Instagram rechaza la petición ("useragent mismatch") si el App ID no corresponde
+  // al navegador, así que lo leemos de la propia página y, si no, lo deducimos.
+  let appId = null;
+  function getAppId() {
+    if (appId) return appId;
+    const m = document.documentElement.innerHTML.match(/"(?:X-IG-App-ID|APP_ID|appId|app_id)"\s*:\s*"(\d{12,})"/);
+    appId = m ? m[1] : (/iPhone|iPad|iPod|Android|Mobile/i.test(navigator.userAgent) ? APP_ID_MOBILE : APP_ID_DESKTOP);
+    return appId;
+  }
+
+  function apiHeaders() {
+    let claim = '0';
+    try { claim = sessionStorage.getItem('www-claim-v2') || '0'; } catch (_) {}
+    return {
+      'X-IG-App-ID': getAppId(),
+      'X-Requested-With': 'XMLHttpRequest',
+      'X-CSRFToken': getCookie('csrftoken') || '',
+      'X-IG-WWW-Claim': claim,
+    };
+  }
+
+  async function errorText(res) {
+    let msg = '';
+    try { msg = (await res.clone().json()).message || ''; } catch (_) {
+      try { msg = (await res.text()).slice(0, 80); } catch (_) {}
+    }
+    return `HTTP ${res.status}${msg ? ' – ' + msg : ''}`;
+  }
+
+  // GET a la API interna con tu sesión. Si Instagram responde 400 por el App ID, prueba el otro.
+  async function api(path, params = {}) {
+    const url = new URL(path, location.origin);
+    for (const [k, v] of Object.entries(params)) if (v != null) url.searchParams.set(k, v);
+    let res = await fetch(url, { credentials: 'include', headers: apiHeaders() });
+    if (res.status === 400) {
+      appId = getAppId() === APP_ID_MOBILE ? APP_ID_DESKTOP : APP_ID_MOBILE;
+      const retry = await fetch(url, { credentials: 'include', headers: apiHeaders() });
+      if (retry.ok) return retry;
+      appId = null;
+    }
+    return res;
+  }
+
   async function fetchPage(userId, kind, maxId, onWait) {
-    const url = new URL(`/api/v1/friendships/${userId}/${kind}/`, location.origin);
-    url.searchParams.set('count', PAGE_SIZE);
-    if (maxId) url.searchParams.set('max_id', maxId);
     for (let attempt = 0; ; attempt++) {
       let res = null;
       try {
-        res = await fetch(url, {
-          credentials: 'include',
-          headers: { 'X-IG-App-ID': APP_ID, 'X-Requested-With': 'XMLHttpRequest' },
-        });
+        res = await api(`/api/v1/friendships/${userId}/${kind}/`, { count: PAGE_SIZE, max_id: maxId });
       } catch (_) { /* red caída o Safari suspendió la pestaña: reintentamos */ }
       if (res && res.ok) return res.json();
       if (res && res.status !== 429 && res.status < 500) {
-        throw new Error(`Instagram respondió ${res.status} al leer ${kind}`);
+        throw new Error(`al leer ${kind === 'followers' ? 'seguidores' : 'seguidos'}: ${await errorText(res)}`);
       }
       if (attempt >= RETRY_WAITS_S.length) throw new RateLimited();
       for (let s = RETRY_WAITS_S[attempt]; s > 0; s--) {
@@ -247,26 +286,46 @@
     }
   }
 
-  // Averigua si /<username>/following/ es tu propio perfil comparando su id con ds_user_id.
-  const idByUsername = {};
-  async function isOwnProfile(username, myId) {
-    if (!(username in idByUsername)) {
-      const url = new URL('/api/v1/users/web_profile_info/', location.origin);
-      url.searchParams.set('username', username);
-      const res = await fetch(url, { credentials: 'include', headers: { 'X-IG-App-ID': APP_ID } });
-      if (!res.ok) return false;
-      const data = await res.json();
-      const user = data?.data?.user;
-      idByUsername[username] = String(user?.id ?? '');
-      if (idByUsername[username] === myId) {
-        totals = { following: user?.edge_follow?.count, followers: user?.edge_followed_by?.count };
-      }
+  // Tu usuario y totales, a partir de ds_user_id.
+  let me = null;
+  async function getMe(myId) {
+    if (me && me.id === myId) return me;
+    const res = await api(`/api/v1/users/${myId}/info/`);
+    if (!res.ok) throw new Error(`al leer tu perfil: ${await errorText(res)}`);
+    const u = (await res.json()).user || {};
+    me = { id: myId, username: (u.username || '').toLowerCase() };
+    totals = { following: u.following_count, followers: u.follower_count };
+    return me;
+  }
+
+  // Botón flotante: si lo ves, el script está cargado. Tócalo para analizar en cualquier momento.
+  function ensureButton() {
+    if (document.getElementById(BUTTON_ID) || !document.body) return;
+    document.body.append(el('button', {
+      id: BUTTON_ID, title: '¿Quién no me sigue?',
+      onclick: () => start(true),
+      style: {
+        position: 'fixed', left: '12px', bottom: 'calc(64px + env(safe-area-inset-bottom))', zIndex: 2147483646,
+        width: '44px', height: '44px', borderRadius: '50%', border: 'none', cursor: 'pointer',
+        background: '#0095f6', color: '#fff', fontSize: '20px', boxShadow: '0 4px 14px rgba(0,0,0,.3)',
+      },
+    }, '👥'));
+  }
+
+  async function start(fromButton) {
+    const myId = getCookie('ds_user_id');
+    if (!myId) return showStatus('Inicia sesión en Instagram (en este navegador) para usar esta función.');
+    if (fromButton) showStatus('Preparando…');
+    try { await getMe(myId); } catch (err) {
+      // Sin totales podemos seguir igual; solo el aviso automático necesita saber tu usuario.
+      if (!fromButton) return showStatus(`No se pudo comprobar tu perfil (${err.message}). Toca 👥 para analizar igualmente.`);
     }
-    return idByUsername[username] === myId;
+    run();
   }
 
   // Instagram es una SPA: vigilamos los cambios de URL.
   async function onRoute() {
+    ensureButton();
     const path = location.pathname;
     if (path === lastPath) return;
     lastPath = path;
@@ -274,8 +333,11 @@
     const myId = getCookie('ds_user_id');
     if (!m || !myId) return;
     try {
-      if (await isOwnProfile(m[1], myId)) run();
-    } catch (_) {}
+      const { username } = await getMe(myId);
+      if (username === m[1].toLowerCase()) run();
+    } catch (err) {
+      showStatus(`No se pudo comprobar tu perfil (${err.message}). Toca 👥 para analizar igualmente.`);
+    }
   }
 
   setInterval(onRoute, 700);

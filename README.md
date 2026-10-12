@@ -78,3 +78,11 @@ Con cualquiera de ellas: abre instagram.com → tu perfil → **Seguidos**.
 ## Desarrollo
 El código está en `ig-no-me-siguen.user.js`. `extension/content.js` es una copia
 para la extensión: tras editar el userscript ejecuta `./macos/sync-extension.sh`.
+
+## Si no funciona
+1. **¿Ves el botón azul 👥 abajo a la izquierda en instagram.com?**
+   - **No:** el script no está cargado. En iPhone: *Ajustes → Safari → Extensiones →
+     Userscripts* → actívala y en *instagram.com* elige **Permitir**. Comprueba también
+     que el archivo esté en la carpeta de Userscripts y activado en la app.
+   - **Sí:** tócalo. Si algo falla, el panel muestra el error (p. ej. `HTTP 401`).
+2. Asegúrate de tener la sesión iniciada en instagram.com **en Safari** (no basta con la app).
