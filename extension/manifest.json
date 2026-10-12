@@ -1,0 +1,13 @@
+{
+  "manifest_version": 3,
+  "name": "IG – ¿Quién no me sigue de vuelta?",
+  "version": "1.0.0",
+  "description": "Al abrir tu lista de \"Seguidos\" en instagram.com muestra las cuentas que no te siguen de vuelta.",
+  "content_scripts": [
+    {
+      "matches": ["https://www.instagram.com/*"],
+      "js": ["content.js"],
+      "run_at": "document_idle"
+    }
+  ]
+}

@@ -22,7 +22,33 @@ Nada sale de tu navegador: no hay servidor, ni contraseñas, ni terceros.
 > ⚠️ La **app nativa** de Instagram (iPhone/Android) no se puede modificar.
 > Esto funciona en **instagram.com desde el navegador**, en el ordenador o en el móvil.
 
-### Ordenador (Chrome, Edge, Firefox, Safari)
+### 🍎 macOS
+
+Elige **una** de estas opciones:
+
+**A) Safari como app nativa de macOS** (requiere Xcode, gratis en el App Store)
+```bash
+git clone -b claude/festive-archimedes-o5hj6c https://github.com/H4NKP/dise-os.git
+cd dise-os
+./macos/build-safari.sh
+```
+El script crea la app **"IG No Me Siguen"**, la copia a `/Applications` y te indica
+cómo activarla en *Safari → Ajustes → Extensiones*. Como no está firmada con una
+cuenta de Apple Developer, hay que activar *Desarrollo → Permitir extensiones sin
+firmar* (Safari lo vuelve a pedir cada vez que se reinicia).
+
+**B) Chrome, Brave, Edge o Arc en Mac** (sin instalar nada más)
+1. Descarga el repositorio (botón *Code → Download ZIP*) y descomprímelo.
+2. Abre `chrome://extensions` y activa **Modo de desarrollador**.
+3. Pulsa **Cargar descomprimida** y elige la carpeta [`extension/`](./extension).
+
+**C) Safari sin Xcode**
+Instala la app gratuita **Userscripts** del Mac App Store, actívala en
+*Safari → Ajustes → Extensiones*, y copia `ig-no-me-siguen.user.js` en su carpeta.
+
+Con cualquiera de ellas: abre instagram.com → tu perfil → **Seguidos**.
+
+### Windows / Linux (Chrome, Edge, Firefox)
 1. Instala la extensión **[Tampermonkey](https://www.tampermonkey.net/)**.
 2. Abre el archivo [`ig-no-me-siguen.user.js`](./ig-no-me-siguen.user.js) en
    modo *Raw*; Tampermonkey te ofrecerá instalarlo → **Instalar**.
@@ -44,3 +70,7 @@ Nada sale de tu navegador: no hay servidor, ni contraseñas, ni terceros.
 - Si tienes miles de seguidores, el primer análisis tarda un poco (≈1 s por cada 100 cuentas).
 - Si Instagram responde con error 429/401, espera un rato y vuelve a intentarlo.
 - Uso personal sobre tu propia cuenta; no lo uses de forma masiva ni automatizada.
+
+## Desarrollo
+El código está en `ig-no-me-siguen.user.js`. `extension/content.js` es una copia
+para la extensión: tras editar el userscript ejecuta `./macos/sync-extension.sh`.
