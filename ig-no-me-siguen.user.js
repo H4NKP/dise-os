@@ -340,6 +340,14 @@
     }
   }
 
-  setInterval(onRoute, 700);
-  onRoute();
+  if (window.__igNoMeSiguenBookmarklet) {
+    // Versión marcador: se ejecuta al tocar el marcador estando en instagram.com.
+    if (!/(^|\.)instagram\.com$/.test(location.hostname)) return alert('Abre instagram.com y toca el marcador allí.');
+    if (window.__igNoMeSiguenStart) return window.__igNoMeSiguenStart(true);
+    window.__igNoMeSiguenStart = start;
+    start(true);
+  } else {
+    setInterval(onRoute, 700);
+    onRoute();
+  }
 })();

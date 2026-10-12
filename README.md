@@ -55,7 +55,12 @@ Con cualquiera de ellas: abre instagram.com → tu perfil → **Seguidos**.
    (O crea un script nuevo en Tampermonkey y pega el contenido.)
 3. Entra en instagram.com → tu perfil → **Seguidos**.
 
-### iPhone / iPad
+### iPhone / iPad — opción fácil: marcador de Safari (sin extensiones)
+1. Abre [`bookmarklet.txt`](./bookmarklet.txt) en modo *Raw*, selecciona todo y copia.
+2. En Safari crea un marcador cualquiera, edítalo y pega el texto como dirección.
+3. En instagram.com abre Marcadores y tócalo: aparece el panel.
+
+### iPhone / iPad — con la app Userscripts
 1. Instala la app gratuita **Userscripts** (App Store) y actívala en
    *Ajustes → Safari → Extensiones*.
 2. Copia `ig-no-me-siguen.user.js` en la carpeta de Userscripts.
@@ -76,8 +81,9 @@ Con cualquiera de ellas: abre instagram.com → tu perfil → **Seguidos**.
 - Uso personal sobre tu propia cuenta; no lo uses de forma masiva ni automatizada.
 
 ## Desarrollo
-El código está en `ig-no-me-siguen.user.js`. `extension/content.js` es una copia
-para la extensión: tras editar el userscript ejecuta `./macos/sync-extension.sh`.
+El código está en `ig-no-me-siguen.user.js`. Tras editarlo:
+- `./macos/sync-extension.sh` actualiza `extension/content.js`.
+- `./tools/build-bookmarklet.sh` regenera `bookmarklet.txt`.
 
 ## Si no funciona
 1. **¿Ves el botón azul 👥 abajo a la izquierda en instagram.com?**
